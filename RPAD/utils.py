@@ -8,6 +8,8 @@ import random
 from torch.utils.data import Dataset, DataLoader
 import time
 from skimage.util.shape import view_as_windows
+import cv2
+
 
 class eval_mode(object):
     def __init__(self, *models):
@@ -57,10 +59,10 @@ def make_dir(dir_path):
 
 def preprocess_obs(obs, bits=5):
     """Preprocessing image, see https://arxiv.org/abs/1807.03039."""
-    bins = 2**bits
+    bins = 2 ** bits
     assert obs.dtype == torch.float32
     if bits < 8:
-        obs = torch.floor(obs / 2**(8 - bits))
+        obs = torch.floor(obs / 2 ** (8 - bits))
     obs = obs / bins
     obs = obs + torch.rand_like(obs) / bins
     obs = obs - 0.5
@@ -69,47 +71,52 @@ def preprocess_obs(obs, bits=5):
 
 class ReplayBuffer(Dataset):
     """Buffer to store environment transitions."""
-    def __init__(self, obs_shape, action_shape, capacity, batch_size, device,image_size=84, 
+
+    def __init__(self, obs_shape, action_shape, capacity, batch_size, device, image_size=84,
                  pre_image_size=84, transform=None):
         self.capacity = capacity
         self.batch_size = batch_size
         self.device = device
         self.image_size = image_size
-        self.pre_image_size = pre_image_size # for translation
+        self.pre_image_size = pre_image_size  # for translation
         self.transform = transform
         # the proprioceptive obs is stored as float32, pixels obs as uint8
         obs_dtype = np.float32 if len(obs_shape) == 1 else np.uint8
-        
+
         self.obses = np.empty((capacity, *obs_shape), dtype=obs_dtype)
         self.next_obses = np.empty((capacity, *obs_shape), dtype=obs_dtype)
         self.actions = np.empty((capacity, *action_shape), dtype=np.float32)
         self.rewards = np.empty((capacity, 1), dtype=np.float32)
         self.not_dones = np.empty((capacity, 1), dtype=np.float32)
+        # HosH begin
+        self.priorities = np.empty((capacity, 1), dtype=np.float32)
+        # HosH end
 
         self.idx = 0
         self.last_save = 0
         self.full = False
 
-
-    
-
     def add(self, obs, action, reward, next_obs, done):
-       
+
         np.copyto(self.obses[self.idx], obs)
         np.copyto(self.actions[self.idx], action)
         np.copyto(self.rewards[self.idx], reward)
         np.copyto(self.next_obses[self.idx], next_obs)
         np.copyto(self.not_dones[self.idx], not done)
+        # HosH begins
+        np.copyto(self.priorities[self.idx],
+                  100)  # (at the beginning we should not do augmentation so set a priority a relatively high number)
+        # HosH ends
 
         self.idx = (self.idx + 1) % self.capacity
         self.full = self.full or self.idx == 0
 
     def sample_proprio(self):
-        
+
         idxs = np.random.randint(
             0, self.capacity if self.full else self.idx, size=self.batch_size
         )
-        
+
         obses = self.obses[idxs]
         next_obses = self.next_obses[idxs]
 
@@ -128,7 +135,7 @@ class ReplayBuffer(Dataset):
         idxs = np.random.randint(
             0, self.capacity if self.full else self.idx, size=self.batch_size
         )
-      
+
         obses = self.obses[idxs]
         next_obses = self.next_obses[idxs]
         pos = obses.copy()
@@ -136,7 +143,7 @@ class ReplayBuffer(Dataset):
         obses = fast_random_crop(obses, self.image_size)
         next_obses = fast_random_crop(next_obses, self.image_size)
         pos = fast_random_crop(pos, self.image_size)
-    
+
         obses = torch.as_tensor(obses, device=self.device).float()
         next_obses = torch.as_tensor(
             next_obses, device=self.device
@@ -151,30 +158,39 @@ class ReplayBuffer(Dataset):
 
         return obses, actions, rewards, next_obses, not_dones, cpc_kwargs
 
-    def sample_rad(self,aug_funcs):
-        
+    # HosH begins
+    def update_priorities(self, idxs, priorities):
+        priorities = priorities.detach().cpu().numpy()
+        for i, var in enumerate(idxs):
+            self.priorities[var] = priorities[i]
+
+    # HosH ends
+
+    # HosH begins
+    def sample_rad(self, aug_funcs, writer, step):
+
         # augs specified as flags
         # curl_sac organizes flags into aug funcs
         # passes aug funcs into sampler
 
-
         idxs = np.random.randint(
             0, self.capacity if self.full else self.idx, size=self.batch_size
         )
-      
+
         obses = self.obses[idxs]
         next_obses = self.next_obses[idxs]
+        priority = self.priorities[idxs]
         if aug_funcs:
-            for aug,func in aug_funcs.items():
+            for aug, func in aug_funcs.items():
                 # apply crop and cutout first
                 if 'crop' in aug or 'cutout' in aug:
-                    obses = func(obses)
-                    next_obses = func(next_obses)
-                elif 'translate' in aug: 
+                    obses, not_augmented_obses = func(obses, priority)
+                    next_obses, _ = func(next_obses, priority)
+                elif 'translate' in aug:
                     og_obses = center_crop_images(obses, self.pre_image_size)
                     og_next_obses = center_crop_images(next_obses, self.pre_image_size)
                     obses, rndm_idxs = func(og_obses, self.image_size, return_random_idxs=True)
-                    next_obses = func(og_next_obses, self.image_size, **rndm_idxs)                     
+                    next_obses = func(og_next_obses, self.image_size, **rndm_idxs)
 
         obses = torch.as_tensor(obses, device=self.device).float()
         next_obses = torch.as_tensor(next_obses, device=self.device).float()
@@ -187,14 +203,24 @@ class ReplayBuffer(Dataset):
 
         # augmentations go here
         if aug_funcs:
-            for aug,func in aug_funcs.items():
+            for aug, func in aug_funcs.items():
                 # skip crop and cutout augs
                 if 'crop' in aug or 'cutout' in aug or 'translate' in aug:
                     continue
-                obses = func(obses)
-                next_obses = func(next_obses)
+                obses, not_augmented_obses = func(obses, priority)
+                next_obses, _ = func(next_obses, priority)
 
-        return obses, actions, rewards, next_obses, not_dones
+        writer.add_scalar("augmented_obses", self.batch_size - not_augmented_obses, step)
+        """
+        show augmented images
+        """
+        # image = obses.cpu().numpy()
+        # image = image[0][0:3, :, :]
+        # image = np.moveaxis(image, 0, -1)
+        # cv2.imshow("test", image)
+        # cv2.waitKey(1)
+        return obses, actions, rewards, next_obses, not_dones, idxs
+        # HosH end
 
     def save(self, save_dir):
         if self.idx == self.last_save:
@@ -243,7 +269,8 @@ class ReplayBuffer(Dataset):
         return obs, action, reward, next_obs, not_done
 
     def __len__(self):
-        return self.capacity 
+        return self.capacity
+
 
 class FrameStack(gym.Wrapper):
     def __init__(self, env, k):
@@ -279,8 +306,8 @@ def center_crop_image(image, output_size):
     h, w = image.shape[1:]
     new_h, new_w = output_size, output_size
 
-    top = (h - new_h)//2
-    left = (w - new_w)//2
+    top = (h - new_h) // 2
+    left = (w - new_w) // 2
 
     image = image[:, top:top + new_h, left:left + new_w]
     return image
@@ -290,8 +317,8 @@ def center_crop_images(image, output_size):
     h, w = image.shape[2:]
     new_h, new_w = output_size, output_size
 
-    top = (h - new_h)//2
-    left = (w - new_w)//2
+    top = (h - new_h) // 2
+    left = (w - new_w) // 2
 
     image = image[:, :, top:top + new_h, left:left + new_w]
     return image
