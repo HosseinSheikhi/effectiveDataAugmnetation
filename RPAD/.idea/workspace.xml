@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="339716d7-1c38-4f60-82c1-22b1893fc526" name="Default Changelist" comment="" />
+    <list default="true" id="339716d7-1c38-4f60-82c1-22b1893fc526" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/cheetah_run.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/walker_run.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_augs.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_augs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run.sh" beforeDir="false" afterPath="$PROJECT_DIR$/cartpole_run.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -34,6 +42,7 @@
       <workItem from="1604434436207" duration="407000" />
       <workItem from="1604468532707" duration="7000" />
       <workItem from="1605135423425" duration="517000" />
+      <workItem from="1605236193321" duration="3451000" />
     </task>
     <servers />
   </component>
@@ -49,9 +58,9 @@
       <screen x="72" y="27" width="1848" height="1053" />
     </state>
     <state x="361" y="316" width="424" height="491" key="FileChooserDialogImpl/72.27.1848.1053@72.27.1848.1053" timestamp="1605135506890" />
-    <state x="72" y="187" width="1022" height="737" key="SettingsEditor" timestamp="1605135536213">
+    <state x="72" y="187" width="1022" height="737" key="SettingsEditor" timestamp="1605236232445">
       <screen x="72" y="27" width="1848" height="1053" />
     </state>
-    <state x="72" y="187" width="1022" height="737" key="SettingsEditor/72.27.1848.1053@72.27.1848.1053" timestamp="1605135536213" />
+    <state x="72" y="187" width="1022" height="737" key="SettingsEditor/72.27.1848.1053@72.27.1848.1053" timestamp="1605236232445" />
   </component>
 </project>

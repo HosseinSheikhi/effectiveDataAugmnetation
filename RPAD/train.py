@@ -216,7 +216,7 @@ def main():
     env_name = args.domain_name + '-' + args.task_name
     exp_name = env_name + '-' + ts + '-im' + str(args.image_size) + '-b' \
                + str(args.batch_size) + '-s' + str(args.seed) + '-' + args.encoder_type + '-' + args.data_augs
-    args.work_dir = args.work_dir + '/' + exp_name + "clipped"
+    args.work_dir = args.work_dir + '/' + exp_name + "_clipped"
 
     writer = SummaryWriter(args.work_dir)
     utils.make_dir(args.work_dir)

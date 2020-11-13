@@ -8,36 +8,59 @@ Up to this version "clipped" branch implements the prioritized augmentation for:
 random_grayscale, cutout, cutout_color, flip, rotation
 
 # results
-For cutout:
+Cutout:
 
-| env/max_clip | 0.1 | 0.5 | 1 | 2 |
-| :---: | :---: | :---: |  :---: | :---: |
-| cartpole | - | - |- | - |
-| walker | - | - |- | - |
-| cheetah | - | - |- | - |
+| RAD | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | 860 | 92K |
+| walker | 520 | 134K |
+| cheetah | - | - |
+
+| max_clip=2 | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | 813 | 50K |
+| walker | - | - |
+| cheetah | - | - |
 
 
 For flip:
 
-| env/max_clip | 0.1 | 0.5 | 1 | 2 |
-| :---: | :---: | :---: |  :---: | :---: |
-| cartpole | - | - |- | - |
-| walker | - | - |- | - |
-| cheetah | - | - |- | - |
+| RAD | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | 837 | 56K |
+| walker | 507 | 322K |
+| cheetah | - | - |
+
+| max_clip=2 | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | - | - |
+| walker | - | - |
+| cheetah | - | - |
 
 For rotation:
 
-| env/max_clip | 0.1 | 0.5 | 1 | 2 |
-| :---: | :---: | :---: |  :---: | :---: |
-| cartpole | - | - |- | - |
-| walker | - | - |- | - |
-| cheetah | - | - |- | - |
+| RAD | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | - | - |
+| walker | - | - |
+| cheetah | - | - |
 
+| max_clip=2 | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | - | - |
+| walker | - | - |
+| cheetah | - | - |
 
 For random_grayscale:
 
-| env/max_clip | 0.1 | 0.5 | 1 | 2 |
-| :---: | :---: | :---: |  :---: | :---: |
-| cartpole | - | - |- | - |
-| walker | - | - |- | - |
-| cheetah | - | - |- | - |
+| RAD | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | 600 | 140 |
+| walker | - | - |
+| cheetah | - | - |
+
+| max_clip=2 | MAX_REWARD | FIRST_STEP |
+| :---: | :---: | :---: |
+| cartpole | - | - |
+| walker | - | - |
+| cheetah | - | - |

@@ -40,7 +40,7 @@ def grayscale(imgs):
     return imgs
 
 
-def random_grayscale(images, priority):
+def random_grayscale(images, priority, p=0.3):
     """
         args:
         imgs: torch.tensor shape (B,C,H,W)
@@ -55,8 +55,13 @@ def random_grayscale(images, priority):
     bs, channels, h, w = images.shape
     images = images.to(device)
     gray_images = grayscale(images)
-    p = np.clip(np.squeeze(priority), a_min=0.0, a_max=clip_max)
-    mask = ~(clip_max == np.squeeze(p))
+
+    # remember higher priority means lower value in priority
+    augmentation_number = int(bs * p)
+    high_pr_index = np.argsort(np.squeeze(priority))[:augmentation_number]
+    mask = np.zeros(bs, dtype=bool)
+    for val in high_pr_index:
+        mask[val] = True
     mask = torch.from_numpy(mask)
 
     frames = images.shape[1] // 3
@@ -66,7 +71,7 @@ def random_grayscale(images, priority):
     mask = mask[:, :, None, None, None]
     out = mask * gray_images + (1 - mask) * images
     out = out.view([bs, -1, h, w]).type(in_type) / 255.
-    return out, (p == clip_max).sum()
+    return out, (bs-augmentation_number)
 
 
 # random cutout
@@ -130,7 +135,7 @@ def random_cutout_color(imgs, priority, min_cut=10, max_cut=30):
 
 # random flip
 
-def random_flip(images, priority):
+def random_flip(images, priority, p=0.2):
     """
         args:
         imgs: torch.tensor shape (B,C,H,W)
@@ -146,9 +151,14 @@ def random_flip(images, priority):
 
     flipped_images = images.flip([3])
 
-    p = np.clip(np.squeeze(priority), a_min=0.0, a_max=clip_max)
-    mask = ~(clip_max == np.squeeze(p))
+    # remember higher priority means lower value in priority
+    augmentation_number = int(bs * p)
+    high_pr_index = np.argsort(np.squeeze(priority))[:augmentation_number]
+    mask = np.zeros(bs, dtype=bool)
+    for val in high_pr_index:
+        mask[val] = True
     mask = torch.from_numpy(mask)
+
     frames = images.shape[1]  # // 3
     images = images.view(*flipped_images.shape)
     mask = mask[:, None] * torch.ones([1, frames]).type(mask.dtype)
@@ -159,12 +169,12 @@ def random_flip(images, priority):
     out = mask * flipped_images + (1 - mask) * images
 
     out = out.view([bs, -1, h, w])
-    return out, (p == clip_max).sum()
+    return out, (bs-augmentation_number)
 
 
 # random rotation
 
-def random_rotation(images, priority):
+def random_rotation(images, priority, p=0.3):
     """
         args:
         imgs: torch.tensor shape (B,C,H,W)
@@ -183,8 +193,12 @@ def random_rotation(images, priority):
     rot270_images = images.rot90(3, [2, 3])
 
     rnd_rot = np.random.randint(1, 4, size=(images.shape[0],))
-    p = np.clip(np.squeeze(priority), a_min=0.0, a_max=clip_max)
-    mask = ~(clip_max == np.squeeze(p))
+    # remember higher priority means lower value in priority
+    augmentation_number = int(bs * p)
+    high_pr_index = np.argsort(np.squeeze(priority))[:augmentation_number]
+    mask = np.zeros(bs, dtype=bool)
+    for val in high_pr_index:
+        mask[val] = True
     mask = rnd_rot * mask
     mask = torch.from_numpy(mask).to(device)
 
@@ -199,7 +213,7 @@ def random_rotation(images, priority):
     out = masks[0] * images + masks[1] * rot90_images + masks[2] * rot180_images + masks[3] * rot270_images
 
     out = out.view([bs, -1, h, w])
-    return out, (p == clip_max).sum()
+    return out, (bs-augmentation_number)
 
 
 # random color
